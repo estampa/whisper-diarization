@@ -48,6 +48,21 @@ parser.add_argument(
     help="if you have a GPU use 'cuda', otherwise 'cpu'",
 )
 
+parser.add_argument(
+    "--transcribe",
+    dest="transcribe",
+    default=True,
+    action='store_true',
+    help="transcribe the audio (default)",
+)
+
+parser.add_argument(
+    "--translate",
+    dest="transcribe",
+    action='store_false',
+    help="translate the audio",
+)
+
 args = parser.parse_args()
 
 if args.stemming:
@@ -91,12 +106,15 @@ if args.suppress_numerals:
 else:
     numeral_symbol_tokens = None
 
+whisper_task = "transcribe" if args.transcribe else "translate"
+
 segments, info = whisper_model.transcribe(
     vocal_target,
     beam_size=5,
     word_timestamps=True,
     suppress_tokens=numeral_symbol_tokens,
     vad_filter=True,
+    task=whisper_task
 )
 whisper_results = []
 for segment in segments:
