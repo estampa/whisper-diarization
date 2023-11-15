@@ -1,6 +1,7 @@
 import argparse
 import os
 from helpers import *
+from pathvalidate import sanitize_filename
 from faster_whisper import WhisperModel
 import whisperx
 import torch
@@ -95,7 +96,7 @@ else:
 
 output_folder = args.output_folder if args.output_folder else os.path.dirname(args.audio)
 filename = os.path.basename(args.audio)
-filename_wo_extension = os.path.splitext(filename)[0].replace(" ", "_")
+filename_wo_extension = sanitize_filename(os.path.splitext(filename)[0].replace(" ", "_"))
 output_path = os.path.join(output_folder, filename_wo_extension)
 temp_path = os.path.join(output_folder, "temp_outputs")
 
