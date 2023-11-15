@@ -95,13 +95,14 @@ else:
 
 output_folder = args.output_folder if args.output_folder else os.path.dirname(args.audio)
 filename = os.path.basename(args.audio)
-filename_wo_extension = os.path.splitext(filename)[0]
+filename_wo_extension = os.path.splitext(filename)[0].replace(" ", "_")
 output_path = os.path.join(output_folder, filename_wo_extension)
 temp_path = os.path.join(output_folder, "temp_outputs")
 
 logging.info("Starting Nemo process with vocal_target: ", vocal_target)
 nemo_process = subprocess.Popen(
-    ["python3", "nemo_process.py", "-a", vocal_target, "--device", args.device, "--output-folder", temp_path]
+    ["python3", "nemo_process.py", "-a", vocal_target, "--device", args.device,
+     "--output-folder", temp_path, "--output-filename", filename_wo_extension]
 )
 # Run on GPU with FP16
 whisper_model = WhisperModel(
@@ -157,7 +158,7 @@ else:
 nemo_process.communicate()
 
 speaker_ts = []
-with open(os.path.join(temp_path, "pred_rttms", "mono_file.rttm"), "r") as f:
+with open(os.path.join(temp_path, "pred_rttms", filename_wo_extension + ".rttm"), "r") as f:
     lines = f.readlines()
     for line in lines:
         line_list = line.split(" ")

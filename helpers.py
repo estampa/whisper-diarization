@@ -25,7 +25,7 @@ wav2vec2_langs = list(DEFAULT_ALIGN_MODELS_TORCH.keys()) + list(
 )
 
 
-def create_config(output_dir):
+def create_config(output_dir, ouput_filename="mono_file.wav"):
     DOMAIN_TYPE = "telephonic"  # Can be meeting, telephonic, or general based on domain type of the audio file
     CONFIG_LOCAL_DIRECTORY = "nemo_msdd_configs"
     CONFIG_FILE_NAME = f"diar_infer_{DOMAIN_TYPE}.yaml"
@@ -41,7 +41,7 @@ def create_config(output_dir):
     os.makedirs(data_dir, exist_ok=True)
 
     meta = {
-        "audio_filepath": os.path.join(output_dir, "mono_file.wav"),
+        "audio_filepath": os.path.join(output_dir, ouput_filename),
         "offset": 0,
         "duration": None,
         "label": "infer",

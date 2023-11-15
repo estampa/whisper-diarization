@@ -20,6 +20,11 @@ parser.add_argument(
     default=None,
     help="path for the output",
 )
+parser.add_argument(
+    "--output-filename",
+    default="mono_file",
+    help="filename for the output and the temporary files"
+)
 args = parser.parse_args()
 
 # convert audio to mono for NeMo combatibility
@@ -27,8 +32,8 @@ sound = AudioSegment.from_file(args.audio).set_channels(1)
 
 temp_path = args.output_folder if args.output_folder else os.path.join(os.getcwd(), "temp_outputs")
 os.makedirs(temp_path, exist_ok=True)
-sound.export(os.path.join(temp_path, "mono_file.wav"), format="wav")
+sound.export(os.path.join(temp_path, args.output_filename + ".wav"), format="wav")
 
 # Initialize NeMo MSDD diarization model
-msdd_model = NeuralDiarizer(cfg=create_config(temp_path)).to(args.device)
+msdd_model = NeuralDiarizer(cfg=create_config(temp_path, args.output_filename + ".wav")).to(args.device)
 msdd_model.diarize()
