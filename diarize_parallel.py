@@ -63,6 +63,12 @@ parser.add_argument(
     help="translate the audio",
 )
 
+parser.add_argument(
+    "--output-folder",
+    default=None,
+    help="path for the output",
+)
+
 args = parser.parse_args()
 
 if args.stemming:
@@ -87,9 +93,15 @@ if args.stemming:
 else:
     vocal_target = args.audio
 
+output_folder = args.output_folder if args.output_folder else os.path.dirname(args.audio)
+filename = os.path.basename(args.audio)
+filename_wo_extension = os.path.splitext(filename)[0]
+output_path = os.path.join(output_folder, filename_wo_extension)
+temp_path = os.path.join(output_folder, "temp_outputs")
+
 logging.info("Starting Nemo process with vocal_target: ", vocal_target)
 nemo_process = subprocess.Popen(
-    ["python3", "nemo_process.py", "-a", vocal_target, "--device", args.device],
+    ["python3", "nemo_process.py", "-a", vocal_target, "--device", args.device, "--output-folder", temp_path]
 )
 # Run on GPU with FP16
 whisper_model = WhisperModel(
@@ -143,8 +155,6 @@ else:
 
 # Reading timestamps <> Speaker Labels mapping
 nemo_process.communicate()
-ROOT = os.getcwd()
-temp_path = os.path.join(ROOT, "temp_outputs")
 
 speaker_ts = []
 with open(os.path.join(temp_path, "pred_rttms", "mono_file.rttm"), "r") as f:
@@ -191,10 +201,11 @@ else:
 
 ssm = get_sentences_speaker_mapping(wsm, speaker_ts)
 
-with open(f"{os.path.splitext(args.audio)[0]}.txt", "w", encoding="utf-8-sig") as f:
+
+with open(f"{output_path}.txt", "w", encoding="utf-8-sig") as f:
     get_speaker_aware_transcript(ssm, f)
 
-with open(f"{os.path.splitext(args.audio)[0]}.srt", "w", encoding="utf-8-sig") as srt:
+with open(f"{output_path}.srt", "w", encoding="utf-8-sig") as srt:
     write_srt(ssm, srt)
 
-cleanup(temp_path)
+# cleanup(temp_path)
