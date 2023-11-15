@@ -15,12 +15,17 @@ parser.add_argument(
     default="cuda" if torch.cuda.is_available() else "cpu",
     help="if you have a GPU use 'cuda', otherwise 'cpu'",
 )
+parser.add_argument(
+    "--output-folder",
+    default=None,
+    help="path for the output",
+)
 args = parser.parse_args()
 
 # convert audio to mono for NeMo combatibility
 sound = AudioSegment.from_file(args.audio).set_channels(1)
-ROOT = os.getcwd()
-temp_path = os.path.join(ROOT, "temp_outputs")
+
+temp_path = args.output_folder if args.output_folder else os.path.join(os.getcwd(), "temp_outputs")
 os.makedirs(temp_path, exist_ok=True)
 sound.export(os.path.join(temp_path, "mono_file.wav"), format="wav")
 
