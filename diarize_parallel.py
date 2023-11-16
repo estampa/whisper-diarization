@@ -159,7 +159,8 @@ else:
 nemo_process.communicate()
 
 speaker_ts = []
-with open(os.path.join(temp_path, "pred_rttms", filename_wo_extension + ".rttm"), "r") as f:
+rttm_file_path = os.path.join(temp_path, "pred_rttms", filename_wo_extension + ".rttm")
+with open(rttm_file_path, "r") as f:
     lines = f.readlines()
     for line in lines:
         line_list = line.split(" ")
@@ -205,11 +206,12 @@ else:
 
 ssm = get_sentences_speaker_mapping(wsm, speaker_ts)
 
-
 with open(f"{output_path}.txt", "w", encoding="utf-8-sig") as f:
     get_speaker_aware_transcript(ssm, f)
 
 with open(f"{output_path}.srt", "w", encoding="utf-8-sig") as srt:
     write_srt(ssm, srt)
 
-# cleanup(temp_path)
+shutil.copy(rttm_file_path, f"{output_path}.rttm")
+
+cleanup(temp_path)
