@@ -206,10 +206,10 @@ else:
 
 ssm = get_sentences_speaker_mapping(wsm, speaker_ts)
 
-with open(f"{output_path}.txt", "w", encoding="utf-8-sig") as f:
+with open(f"{output_path}.{whisper_task}.txt", "w", encoding="utf-8-sig") as f:
     get_speaker_aware_transcript(ssm, f)
 
-with open(f"{output_path}.srt", "w", encoding="utf-8-sig") as srt:
+with open(f"{output_path}.{whisper_task}.srt", "w", encoding="utf-8-sig") as srt:
     write_srt(ssm, srt)
 
 shutil.copy(rttm_file_path, f"{output_path}.rttm")
