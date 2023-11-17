@@ -94,10 +94,16 @@ if args.stemming:
 else:
     vocal_target = args.audio
 
+whisper_task = "transcribe" if args.transcribe else "translate"
 output_folder = args.output_folder if args.output_folder else os.path.dirname(args.audio)
+
 filename = os.path.basename(args.audio)
 filename_wo_extension = sanitize_filename(os.path.splitext(filename)[0].replace(" ", "_"))
+
 output_path = os.path.join(output_folder, filename_wo_extension)
+output_path_txt = f"{output_path}.{whisper_task}.txt"
+output_path_srt = f"{output_path}.{whisper_task}.srt"
+
 temp_path = os.path.join(output_folder, "temp_outputs")
 
 logging.info("Starting Nemo process with vocal_target: ", vocal_target)
@@ -119,8 +125,6 @@ if args.suppress_numerals:
     numeral_symbol_tokens = find_numeral_symbol_tokens(whisper_model.hf_tokenizer)
 else:
     numeral_symbol_tokens = None
-
-whisper_task = "transcribe" if args.transcribe else "translate"
 
 segments, info = whisper_model.transcribe(
     vocal_target,
@@ -206,10 +210,10 @@ else:
 
 ssm = get_sentences_speaker_mapping(wsm, speaker_ts)
 
-with open(f"{output_path}.{whisper_task}.txt", "w", encoding="utf-8-sig") as f:
+with open(output_path_txt, "w", encoding="utf-8-sig") as f:
     get_speaker_aware_transcript(ssm, f)
 
-with open(f"{output_path}.{whisper_task}.srt", "w", encoding="utf-8-sig") as srt:
+with open(output_path_srt, "w", encoding="utf-8-sig") as srt:
     write_srt(ssm, srt)
 
 shutil.copy(rttm_file_path, f"{output_path}.rttm")
