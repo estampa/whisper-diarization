@@ -70,6 +70,13 @@ parser.add_argument(
     help="path for the output",
 )
 
+parser.add_argument(
+    "--force_english",
+    default=False,
+    action='store_true',
+    help="force transcript to be in english",
+)
+
 args = parser.parse_args()
 
 if args.stemming:
@@ -132,7 +139,8 @@ segments, info = whisper_model.transcribe(
     word_timestamps=True,
     suppress_tokens=numeral_symbol_tokens,
     vad_filter=True,
-    task=whisper_task
+    task=whisper_task,
+    language="en" if args.force_english else None,
 )
 whisper_results = []
 for segment in segments:
