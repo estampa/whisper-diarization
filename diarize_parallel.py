@@ -183,7 +183,7 @@ with open(rttm_file_path, "r") as f:
 wsm = get_words_speaker_mapping(word_timestamps, speaker_ts, "start")
 
 
-punct_lang = "en" if whisper_task == "translate" else info.language
+punct_lang = "en" if whisper_task == "translate" or args.force_english else info.language
 if punct_lang in punct_model_langs:
     # restoring punctuation in the transcript to help realign the sentences
     punct_model = PunctuationModel(model="kredor/punctuate-all")
