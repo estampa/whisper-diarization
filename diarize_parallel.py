@@ -43,6 +43,22 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--batch-size",
+    type=int,
+    dest="batch_size",
+    default=8,
+    help="Batch size for batched inference, reduce if you run out of memory, set to 0 for non-batched inference",
+)
+
+parser.add_argument(
+    "--language",
+    type=str,
+    default=None,
+    choices=whisper_langs,
+    help="Language spoken in the audio, specify None to perform language detection",
+)
+
+parser.add_argument(
     "--device",
     dest="device",
     default="cuda" if torch.cuda.is_available() else "cpu",
@@ -118,50 +134,58 @@ nemo_process = subprocess.Popen(
     ["python3", "nemo_process.py", "-a", vocal_target, "--device", args.device,
      "--output-folder", temp_path, "--output-filename", filename_wo_extension]
 )
-# Run on GPU with FP16
-whisper_model = WhisperModel(
-    args.model_name, device=args.device, compute_type=mtypes[args.device]
-)
+# Transcribe the audio file
+if args.batch_size != 0:
+    from transcription_helpers import transcribe_batched
 
-# or run on GPU with INT8
-# model = WhisperModel(model_size, device="cuda", compute_type="int8_float16")
-# or run on CPU with INT8
-# model = WhisperModel(model_size, device="cpu", compute_type="int8")
-
-if args.suppress_numerals:
-    numeral_symbol_tokens = find_numeral_symbol_tokens(whisper_model.hf_tokenizer)
+    whisper_results, language = transcribe_batched(
+        vocal_target,
+        args.language,
+        args.batch_size,
+        args.model_name,
+        mtypes[args.device],
+        args.suppress_numerals,
+        args.device,
+    )
 else:
-    numeral_symbol_tokens = None
+    from transcription_helpers import transcribe
 
-segments, info = whisper_model.transcribe(
-    vocal_target,
-    beam_size=5,
-    word_timestamps=True,
-    suppress_tokens=numeral_symbol_tokens,
-    vad_filter=True,
-    task=whisper_task,
-    language="en" if args.force_english else None,
-)
-whisper_results = []
-for segment in segments:
-    whisper_results.append(segment._asdict())
+#############################3
+##     task=whisper_task,
+##    language="en" if args.force_english else None,
 
-# clear gpu vram
-del whisper_model
-torch.cuda.empty_cache()
 
-if info.language in wav2vec2_langs:
+    whisper_results, language = transcribe(
+        vocal_target,
+        args.language,
+        args.model_name,
+        mtypes[args.device],
+        args.suppress_numerals,
+        args.device,
+    )
+
+if language in wav2vec2_langs:
     alignment_model, metadata = whisperx.load_align_model(
-        language_code=info.language, device=args.device
+        language_code=language, device=args.device
     )
     result_aligned = whisperx.align(
         whisper_results, alignment_model, metadata, vocal_target, args.device
     )
-    word_timestamps = filter_missing_timestamps(result_aligned["word_segments"])
+    word_timestamps = filter_missing_timestamps(
+        result_aligned["word_segments"],
+        initial_timestamp=whisper_results[0].get("start"),
+        final_timestamp=whisper_results[-1].get("end"),
+    )
     # clear gpu vram
     del alignment_model
     torch.cuda.empty_cache()
 else:
+    assert (
+        args.batch_size == 0  # TODO: add a better check for word timestamps existence
+    ), (
+        f"Unsupported language: {language}, use --batch_size to 0"
+        " to generate word timestamps using whisper directly and fix this error."
+    )
     word_timestamps = []
     for segment in whisper_results:
         for word in segment["words"]:
@@ -169,6 +193,8 @@ else:
 
 # Reading timestamps <> Speaker Labels mapping
 nemo_process.communicate()
+ROOT = os.getcwd()
+temp_path = os.path.join(ROOT, "temp_outputs")
 
 speaker_ts = []
 rttm_file_path = os.path.join(temp_path, "pred_rttms", filename_wo_extension + ".rttm")
@@ -182,8 +208,7 @@ with open(rttm_file_path, "r") as f:
 
 wsm = get_words_speaker_mapping(word_timestamps, speaker_ts, "start")
 
-
-punct_lang = "en" if whisper_task == "translate" or args.force_english else info.language
+punct_lang = "en" if whisper_task == "translate" or args.force_english else language
 if punct_lang in punct_model_langs:
     # restoring punctuation in the transcript to help realign the sentences
     punct_model = PunctuationModel(model="kredor/punctuate-all")
@@ -210,12 +235,12 @@ if punct_lang in punct_model_langs:
                 word = word.rstrip(".")
             word_dict["word"] = word
 
-    wsm = get_realigned_ws_mapping_with_punctuation(wsm)
 else:
     logging.warning(
-        f"Punctuation restoration is not available for {info.language} language."
+        f"Punctuation restoration is not available for {language} language. Using the original punctuation."
     )
 
+wsm = get_realigned_ws_mapping_with_punctuation(wsm)
 ssm = get_sentences_speaker_mapping(wsm, speaker_ts)
 
 with open(output_path_txt, "w", encoding="utf-8-sig") as f:
