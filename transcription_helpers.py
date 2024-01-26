@@ -8,6 +8,7 @@ def transcribe(
     compute_dtype: str,
     suppress_numerals: bool,
     device: str,
+    task: str
 ):
     from faster_whisper import WhisperModel
     from helpers import find_numeral_symbol_tokens, wav2vec2_langs
@@ -38,6 +39,7 @@ def transcribe(
         word_timestamps=word_timestamps,  # TODO: disable this if the language is supported by wav2vec2
         suppress_tokens=numeral_symbol_tokens,
         vad_filter=True,
+        task=task
     )
     whisper_results = []
     for segment in segments:
@@ -56,6 +58,7 @@ def transcribe_batched(
     compute_dtype: str,
     suppress_numerals: bool,
     device: str,
+    task: str
 ):
     import whisperx
 
@@ -67,7 +70,7 @@ def transcribe_batched(
         asr_options={"suppress_numerals": suppress_numerals},
     )
     audio = whisperx.load_audio(audio_file)
-    result = whisper_model.transcribe(audio, language=language, batch_size=batch_size)
+    result = whisper_model.transcribe(audio, language=language, batch_size=batch_size, task=task)
     del whisper_model
     torch.cuda.empty_cache()
     return result["segments"], result["language"]

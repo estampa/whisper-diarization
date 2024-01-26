@@ -146,14 +146,10 @@ if args.batch_size != 0:
         mtypes[args.device],
         args.suppress_numerals,
         args.device,
+        whisper_task
     )
 else:
     from transcription_helpers import transcribe
-
-#############################3
-##     task=whisper_task,
-##    language="en" if args.force_english else None,
-
 
     whisper_results, language = transcribe(
         vocal_target,
@@ -162,7 +158,10 @@ else:
         mtypes[args.device],
         args.suppress_numerals,
         args.device,
+        whisper_task
     )
+
+language = language if args.transcribe else "en"
 
 if language in wav2vec2_langs:
     alignment_model, metadata = whisperx.load_align_model(
@@ -193,8 +192,8 @@ else:
 
 # Reading timestamps <> Speaker Labels mapping
 nemo_process.communicate()
-ROOT = os.getcwd()
-temp_path = os.path.join(ROOT, "temp_outputs")
+# ROOT = os.getcwd()
+# temp_path = os.path.join(ROOT, "temp_outputs")
 
 speaker_ts = []
 rttm_file_path = os.path.join(temp_path, "pred_rttms", filename_wo_extension + ".rttm")
