@@ -35,5 +35,11 @@ os.makedirs(temp_path, exist_ok=True)
 sound.export(os.path.join(temp_path, args.output_filename + ".wav"), format="wav")
 
 # Initialize NeMo MSDD diarization model
-msdd_model = NeuralDiarizer(cfg=create_config(temp_path, args.output_filename + ".wav")).to(args.device)
-msdd_model.diarize()
+try:
+    msdd_model = NeuralDiarizer(cfg=create_config(temp_path, args.output_filename + ".wav")).to(args.device)
+    msdd_model.diarize()
+except torch.cuda.OutOfMemoryError as oom:
+    print("******** OOM ********")
+    if args.device == "cuda":
+        msdd_model = NeuralDiarizer(cfg=create_config(temp_path, args.output_filename + ".wav")).to("cpu")
+        msdd_model.diarize()
